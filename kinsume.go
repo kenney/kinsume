@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 )
 
@@ -21,6 +23,14 @@ func main() {
 	flag.Parse()
 
 	println(fmt.Sprintf("Working on kinesis stream: %s:%s", streamName, shardName))
+
+	if *defaults.DefaultConfig.Region == "" {
+		println("Could not find AWS Region in ENV. Please configure your ENV for AWS access")
+		os.Exit(1)
+	}
+
+	println(fmt.Sprintf("AWS Defaults: %#v", defaults.DefaultConfig))
+	println(fmt.Sprintf("AWS Region: %s", *defaults.DefaultConfig.Region))
 
 	describeStream(streamName)
 

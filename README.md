@@ -14,3 +14,37 @@ Usage: kinsume [args]
 -stream string
    what stream to tail (default "mystream")
 ```
+
+
+## Example output
+---
+```
+$ go run kinsume.go -stream mystream
+Working on kinesis stream: dontcrossmebro:shardId-000000000000
+Could not find AWS Region in ENV. Please configure your ENV for AWS access
+Streams:  {
+  HasMoreStreams: false,
+  StreamNames: [
+    "mystream",
+    "mysweetstream"
+  ]
+}
+Stream Details:  {
+  StreamDescription: {
+    HasMoreShards: false,
+    Shards: [{
+        HashKeyRange: {
+          EndingHashKey: "987654321",
+          StartingHashKey: "0"
+        },
+        SequenceNumberRange: {
+          StartingSequenceNumber: "123456789"
+        },
+        ShardId: "shardId-000000000000"
+      }],
+    StreamARN: "arn:aws:kinesis:us-east-1:000000000000:stream/mystream",
+    StreamName: "mystream",
+    StreamStatus: "ACTIVE"
+  }
+}
+```

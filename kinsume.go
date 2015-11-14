@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 )
@@ -14,6 +15,7 @@ import (
 var streamName string
 var shardName string
 var delayTime int
+var config aws.Config
 
 func main() {
 	flag.StringVar(&streamName, "stream", "mystream", "what stream to tail")
@@ -24,14 +26,19 @@ func main() {
 
 	println(fmt.Sprintf("Working on kinesis stream: %s:%s", streamName, shardName))
 
+	creds := credentials.NewEnvCredentials()
+	config = aws.Config{}
+	config.Credentials = creds
+	config.Region = aws.String("us-east-1")
+
+	// TODO, ensure we can load the region from ENV variables.
+	// Bypass the error now and just use us-east-1
 	if *defaults.DefaultConfig.Region == "" {
 		println("Could not find AWS Region in ENV. Please configure your ENV for AWS access")
-		os.Exit(1)
+		//os.Exit(1)
 	}
 
-	println(fmt.Sprintf("AWS Defaults: %#v", defaults.DefaultConfig))
-	println(fmt.Sprintf("AWS Region: %s", *defaults.DefaultConfig.Region))
-
+	listStreams()
 	describeStream(streamName)
 
 	watchStream(streamName, shardName)
@@ -44,8 +51,6 @@ func watchStream(streamname string, shardname string) {
 		return
 	}
 
-	//var delay = 5
-
 	println(fmt.Sprintf("Tailing the stream with a %ds loop ", delayTime))
 	for true {
 		println("Tick...")
@@ -57,6 +62,7 @@ func watchStream(streamname string, shardname string) {
 
 		if nsi == "" {
 			println("No next shard iterator. Bailing on stream")
+			os.Exit(0)
 		}
 
 		//println(fmt.Sprintf("Next Shard Iterator: %#v", nsi))
@@ -72,7 +78,7 @@ func watchStream(streamname string, shardname string) {
 }
 
 func getShardIterator(streamname string, shardname string) (string, error) {
-	svc := kinesis.New(nil)
+	svc := kinesis.New(&config)
 
 	// Start a tail on the latest posts.
 	gsiiParams := &kinesis.GetShardIteratorInput{
@@ -93,7 +99,7 @@ func getShardIterator(streamname string, shardname string) (string, error) {
 }
 
 func getRecords(si string) ([]*kinesis.Record, string, error) {
-	svc := kinesis.New(nil)
+	svc := kinesis.New(&config)
 
 	griParams := &kinesis.GetRecordsInput{
 		ShardIterator: aws.String(si),
@@ -107,13 +113,11 @@ func getRecords(si string) ([]*kinesis.Record, string, error) {
 		return []*kinesis.Record{}, "", err
 	}
 
-	//println(fmt.Sprintf("Records:  %#v", grresp))
-
 	return grresp.Records, *grresp.NextShardIterator, nil
 }
 
 func listStreams() {
-	svc := kinesis.New(nil)
+	svc := kinesis.New(&config)
 
 	lsiParams := &kinesis.ListStreamsInput{
 		ExclusiveStartStreamName: aws.String("StreamName"),
@@ -130,7 +134,7 @@ func listStreams() {
 }
 
 func describeStream(streamname string) {
-	svc := kinesis.New(nil)
+	svc := kinesis.New(&config)
 
 	dsiParams := &kinesis.DescribeStreamInput{
 		StreamName: aws.String(streamname),
